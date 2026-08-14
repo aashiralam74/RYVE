@@ -147,7 +147,7 @@ export const CheckoutPage = () => {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full bg-ryve-black border border-ryve-border rounded p-3 text-xs text-white outline-none focus:border-white"
-                  placeholder="03001234567"
+                  placeholder="03474765090"
                 />
               </div>
             </div>
@@ -228,8 +228,8 @@ export const CheckoutPage = () => {
               {[
                 { id: 'COD', label: 'Cash on Delivery', desc: 'Pay with cash upon receipt' },
                 { id: 'Bank Transfer', label: 'Direct Bank Transfer', desc: 'HBL / Meezan Bank wire' },
-                { id: 'JazzCash', label: 'JazzCash Wallet', desc: '0300-1234567 manual send' },
-                { id: 'Easypaisa', label: 'Easypaisa Wallet', desc: '0300-1234567 manual send' }
+                { id: 'JazzCash', label: 'JazzCash Wallet', desc: '0347-4765090 manual send' },
+                { id: 'Easypaisa', label: 'Easypaisa Wallet', desc: '0347-4765090 manual send' }
               ].map((pm) => (
                 <div
                   key={pm.id}
