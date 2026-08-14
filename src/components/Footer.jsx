@@ -72,7 +72,7 @@ export const Footer = () => {
             <li><Link to="/track-order" className="hover:text-white transition-colors">Track Your Order</Link></li>
             <li><Link to="/account" className="hover:text-white transition-colors">My Profile & Orders</Link></li>
             <li><a href="mailto:support@ryveclothing.com" className="hover:text-white transition-colors">support@ryveclothing.com</a></li>
-            <li><span className="text-zinc-500">WhatsApp: +92 300 1234567</span></li>
+            <li><span className="text-zinc-500">WhatsApp: +92 347 4765090</span></li>
           </ul>
         </div>
 
