@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit3, X } from 'lucide-react';
+import { Plus, Trash2, Edit3, X, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 
@@ -7,6 +7,7 @@ export const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -43,6 +44,7 @@ export const AdminCategories = () => {
     });
 
     setEditingCategory(null);
+    setUploadingImage(false);
   };
 
   const openAddModal = () => {
@@ -62,8 +64,66 @@ export const AdminCategories = () => {
     setIsModalOpen(true);
   };
 
+  // Upload category image to Supabase Storage
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    // Basic image validation
+    if (!file.type.startsWith('image/')) {
+      addToast('Please select an image file.', 'error');
+      return;
+    }
+
+    // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('Image must be smaller than 5MB.', 'error');
+      return;
+    }
+
+    setUploadingImage(true);
+
+    const safeFileName = file.name
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9.-]/g, '');
+
+    const fileName = `categories/${Date.now()}-${safeFileName}`;
+
+    const { error } = await supabase.storage
+      .from('product-media')
+      .upload(fileName, file);
+
+    if (error) {
+      console.error('Image upload error:', error);
+      addToast('Image upload failed: ' + error.message, 'error');
+      setUploadingImage(false);
+      return;
+    }
+
+    const {
+      data: { publicUrl }
+    } = supabase.storage
+      .from('product-media')
+      .getPublicUrl(fileName);
+
+    setFormData((prev) => ({
+      ...prev,
+      image_url: publicUrl
+    }));
+
+    setUploadingImage(false);
+
+    addToast('Category image uploaded successfully!', 'success');
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
+
+    if (uploadingImage) {
+      addToast('Please wait for the image upload to finish.', 'error');
+      return;
+    }
 
     const slug =
       formData.slug ||
@@ -86,6 +146,7 @@ export const AdminCategories = () => {
         .eq('id', editingCategory.id);
 
       if (error) {
+        console.error(error);
         addToast(error.message, 'error');
         return;
       }
@@ -97,6 +158,7 @@ export const AdminCategories = () => {
         .insert([payload]);
 
       if (error) {
+        console.error(error);
         addToast(error.message, 'error');
         return;
       }
@@ -129,6 +191,7 @@ export const AdminCategories = () => {
   return (
     <div className="space-y-6">
 
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold uppercase tracking-tight">
@@ -149,6 +212,7 @@ export const AdminCategories = () => {
         </button>
       </div>
 
+      {/* Category Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
         {categories.map((category) => (
@@ -165,7 +229,10 @@ export const AdminCategories = () => {
               />
             ) : (
               <div className="w-full h-40 bg-ryve-black flex items-center justify-center text-zinc-600">
-                No Image
+                <div className="text-center">
+                  <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  No Image
+                </div>
               </div>
             )}
 
@@ -197,6 +264,7 @@ export const AdminCategories = () => {
                 </button>
 
               </div>
+
             </div>
           </div>
         ))}
@@ -209,6 +277,7 @@ export const AdminCategories = () => {
         </div>
       )}
 
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
 
@@ -221,7 +290,10 @@ export const AdminCategories = () => {
               </h2>
 
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  resetForm();
+                }}
                 className="text-zinc-500 hover:text-white"
               >
                 <X className="w-5 h-5" />
@@ -231,6 +303,7 @@ export const AdminCategories = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
 
+              {/* Category Name */}
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">
                   Category Name
@@ -250,6 +323,7 @@ export const AdminCategories = () => {
                 />
               </div>
 
+              {/* Slug */}
               <div>
                 <label className="text-xs text-zinc-400 block mb-1">
                   Slug
@@ -268,29 +342,51 @@ export const AdminCategories = () => {
                 />
               </div>
 
+              {/* Image Upload */}
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">
-                  Image URL
+                <label className="text-xs text-zinc-400 block mb-2">
+                  Category Image
                 </label>
 
                 <input
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      image_url: e.target.value
-                    })
-                  }
-                  placeholder="https://..."
-                  className="w-full bg-ryve-black border border-ryve-border rounded p-3 text-white outline-none"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  className="w-full bg-ryve-black border border-ryve-border rounded p-2 text-zinc-400 text-xs"
                 />
+
+                {uploadingImage && (
+                  <p className="text-xs text-zinc-400 mt-2">
+                    Uploading image to cloud...
+                  </p>
+                )}
+
+                {/* Preview */}
+                {formData.image_url && (
+                  <div className="mt-3">
+                    <p className="text-xs text-zinc-500 mb-2">
+                      Image Preview
+                    </p>
+
+                    <img
+                      src={formData.image_url}
+                      alt="Category preview"
+                      className="w-full h-40 object-cover rounded border border-ryve-border"
+                    />
+                  </div>
+                )}
               </div>
 
+              {/* Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-ryve-border">
 
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetForm();
+                  }}
                   className="px-4 py-2 text-zinc-400 hover:text-white"
                 >
                   Cancel
@@ -298,9 +394,14 @@ export const AdminCategories = () => {
 
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-white text-black rounded font-bold uppercase"
+                  disabled={uploadingImage}
+                  className="px-6 py-2 bg-white text-black rounded font-bold uppercase disabled:opacity-50"
                 >
-                  {editingCategory ? 'Update' : 'Create'}
+                  {uploadingImage
+                    ? 'Uploading...'
+                    : editingCategory
+                      ? 'Update'
+                      : 'Create'}
                 </button>
 
               </div>
